@@ -1,0 +1,109 @@
+{{! views/recipes.handlebars }}
+
+{{! // Page title }}
+<h1
+  style="margin:0 0 18px; font-size:28px; font-family:sans-serif;"
+>{{title}}</h1>
+
+{{! // If there are recipes, show them. If not, show "No recipes yet". }}
+{{#if recipes.length}}
+
+  {{! // Recipe list container (no bullets, no padding) }}
+  <ul
+    style="list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px;"
+  >
+
+    {{! // Loop through each recipe (dubble brackets for dynamic data)}}
+    {{#each recipes}}
+      <li
+        style="border:1px solid #e6e6e6; border-radius:14px; padding:14px; background:#fff; transition:box-shadow .2s, transform .1s;"
+        onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.06)'; this.style.transform='translateY(-2px)'"
+        onmouseout="this.style.boxShadow='none'; this.style.transform='none'"
+      >
+
+        {{! // Recipe title links to the detail page }}
+        <h3 style="margin:0 0 8px; font-size:18px; font-family:sans-serif;">
+          <a href="/item/{{id}}" style="text-decoration:none; color:#0b57d0;">
+            {{title}}
+          </a>
+        </h3>
+
+        {{! // Small info line: category badge + ingredient count }}
+        <p
+          style="margin:0 0 10px; color:#666; font-size:13px; font-family:sans-serif; display:flex; align-items:center; gap:8px; flex-wrap:wrap;"
+        >
+          <span
+            style="display:inline-block; background:#eef3ff; color:#0b57d0; padding:2px 10px; border-radius:999px; font-size:12px; border:1px solid #dfe8ff;"
+          >
+            {{category}}
+          </span>
+          <span style="color:#aaa;">•</span>
+          <span>{{ingredientCount}} ingredients</span>
+        </p>
+
+        {{! // Show summary only if it exists }}
+        {{#if summary}}
+          <p
+            style="margin:0; color:#333; font-size:14px; line-height:1.5; font-family:sans-serif;"
+          >
+            {{summary}}
+          </p>
+        {{/if}}
+
+      </li>
+    {{/each}}
+  </ul>
+
+  {{! // Pagination box (Prev / Next buttons and page info) }}
+  <nav style="margin-top:20px; display:flex; justify-content:center;">
+    <div style="display:flex; align-items:center; gap:12px;">
+
+      {{! // Prev button: active or disabled }}
+      {{#if pagination.hasPrevious}}
+        <a
+          href="/recipes?page={{pagination.prevPage}}"
+          style="border:1px solid #ddd; padding:8px 14px; border-radius:10px; text-decoration:none; color:#222; background:#fafafa; font-size:14px;"
+        >
+          ← Prev
+        </a>
+      {{else}}
+        <span
+          style="border:1px solid #ddd; padding:8px 14px; border-radius:10px; color:#888; background:#f7f7f7; opacity:0.6; font-size:14px;"
+        >
+          ← Prev
+        </span>
+      {{/if}}
+
+      {{! // Page info (example: Page 2 of 5) }}
+      <span style="color:#555; font-size:14px; font-family:sans-serif;">
+        Page
+        {{pagination.currentPage}}
+        of
+        {{pagination.totalPages}}
+      </span>
+
+      {{! // Next button: active or disabled }}
+      {{#if pagination.hasNext}}
+        <a
+          href="/recipes?page={{pagination.nextPage}}"
+          style="border:1px solid #ddd; padding:8px 14px; border-radius:10px; text-decoration:none; color:#222; background:#fafafa; font-size:14px;"
+        >
+          Next →
+        </a>
+      {{else}}
+        <span
+          style="border:1px solid #ddd; padding:8px 14px; border-radius:10px; color:#888; background:#f7f7f7; opacity:0.6; font-size:14px;"
+        >
+          Next →
+        </span>
+      {{/if}}
+
+    </div>
+  </nav>
+
+{{else}}
+
+  {{! // Message if there are no recipes in the DB }}
+  <p style="font-family:sans-serif; font-size:16px; color:#555;">No recipes yet.</p>
+
+{{/if}}
