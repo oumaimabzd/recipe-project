@@ -4,7 +4,7 @@ const path = require("path"); // // helps build safe file paths
 const express = require("express"); // // web server framework
 const exphbs = require("express-handlebars"); // // lets us use Handlebars templates
 const sqlite3 = require("sqlite3").verbose(); // // talk to the SQLite database file
-
+const bodyParser = require("body-parser"); // for the password
 //  DATABASE FILE (where your data lives)
 
 const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
@@ -17,7 +17,7 @@ const PORT = 3003; // // web address will be http://localhost:3003
 // This serves files from the "public" folder directly in the browser.
 // Example: "public/css/styles.css" is available at "/css/styles.css".
 app.use(express.static(path.join(__dirname, "public")));
-
+app.use(bodyParser.urlencoded({ extended: false }));
 //  HANDLEBARS
 
 //  Tell Express how to render ".handlebars" files and which layout to use.
@@ -41,9 +41,30 @@ const db = new sqlite3.Database(DB_FILE, (err) => {
 // ROUTES (what to show on each URL)
 
 //  Home page (simple static page)
+// app.get("/", (req, res) => {
+// // Render "views/home.handlebars" and pass a title variable the page can use
+//   res.render("home", { title: "Home" });
+// });
 app.get("/", (req, res) => {
-  // // Render "views/home.handlebars" and pass a title variable the page can use
-  res.render("home", { title: "Home" });
+  res.render("login", {
+    title: "Login Form",
+    heading: "Log in",
+  });
+});
+
+app.post("/", (req, res) => {
+  const { un, pw } = req.body;
+
+  if (un === "admin" && pw === "wdf#2025") {
+    res.send("You are logged in!");
+  } else {
+    res.render("login", {
+      title: "Login Form",
+      heading: "Log in",
+      error: "Wrong Username or Password",
+      un,
+    });
+  }
 });
 
 //  About page (simple static page)
