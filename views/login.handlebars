@@ -1,0 +1,33 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{title}}</title>
+  </head>
+  <body>
+    <h1>{{heading}}</h1>
+
+    {{#if error}}
+      <p style="color: red;">{{error}}</p>
+    {{/if}}
+
+    <form action="/" method="POST">
+      <fieldset>
+        <legend>Login information</legend>
+
+        <label>
+          Username:
+          <input type="text" name="un" value="{{un}}" required />
+        </label>
+        <br /><br />
+
+        <label>
+          Password:
+          <input type="password" name="pw" required />
+        </label>
+      </fieldset>
+
+      <br />
+      <input type="submit" value="Login" />
+    </form>
+  </body>
+</html>
