@@ -1,0 +1,30 @@
+<h1 class="page-title">{{title}}</h1>
+
+{{#if categories.length}}
+  <section class="categories-grid">
+    {{#each categories}}
+      <article class="category-card">
+        <h2 class="category-name">{{this.name}}</h2>
+
+        {{#if this.description}}
+          <p class="category-description">{{this.description}}</p>
+        {{/if}}
+
+        {{#if this.recipe}}
+          <div class="recipe-item">
+            <a href="/item/{{this.recipe.id}}" class="recipe-link">
+              {{this.recipe.title}}
+            </a>
+            {{#if this.recipe.summary}}
+              <div class="recipe-summary">{{this.recipe.summary}}</div>
+            {{/if}}
+          </div>
+        {{else}}
+          <p class="no-recipes">No recipe yet in this category.</p>
+        {{/if}}
+      </article>
+    {{/each}}
+  </section>
+{{else}}
+  <p class="no-categories">No categories yet.</p>
+{{/if}}
