@@ -1,0 +1,76 @@
+<link rel="stylesheet" href="/css/detail.css" />
+
+<section class="detail">
+  <header class="detail.header">
+    <h1 class="detail.title">{{recipe.title}}</h1>
+    {{#if recipe.category}}
+      <span class="detail.badge">{{recipe.category}}</span>
+    {{/if}}
+  </header>
+
+  <div class="detail.hero">
+    {{#if images.length}}
+      <img
+        class="detail.image"
+        src="/img/{{images.0.filename}}"
+        alt="{{recipe.title}}"
+        loading="lazy"
+      />
+    {{else}}
+      <div class="detail.image.placeholder" aria-hidden="true">No image</div>
+    {{/if}}
+
+    {{#if recipe.summary}}
+      <p class="detail.summary">{{recipe.summary}}</p>
+    {{/if}}
+  </div>
+  <!-- Manage image actions -->
+  <div style="margin: .75rem 0;">
+    {{#if images.length}}
+      <a href="/images/edit/{{images.0.id}}">Edit this image filename</a>
+      &nbsp;|&nbsp;
+      <a href="/images/delete/{{images.0.id}}">Delete image row</a>
+    {{else}}
+      <a href="/images/new?recipe_id={{recipe.id}}">Add image filename for this
+        recipe</a>
+    {{/if}}
+  </div>
+  <div class="detail.grid">
+    <section class="detail.ingredients">
+      <h2>Ingredients</h2>
+      {{#if ingredients.length}}
+        <ul class="ingredients.list">
+          {{#each ingredients}}
+            <li class="ingredients.item">
+              {{#if this.amount}}<span
+                  class="ingredients.amount"
+                >{{this.amount}}</span>{{/if}}
+              <span class="ingredients.name">{{this.name}}</span>
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="muted">No ingredients listed yet.</p>
+      {{/if}}
+    </section>
+
+    <section class="detail.instructions">
+      <h2>Instructions</h2>
+      {{#if instructionsLines}}
+        {{#if instructionsLines.length}}
+          <ol class="instructions.list">
+            {{#each instructionsLines}}
+              <li class="instructions.step">{{this}}</li>
+            {{/each}}
+          </ol>
+        {{/if}}
+      {{else if recipe.instructions}}
+        <div class="instructions.block">
+          {{{recipe.instructions}}}
+        </div>
+      {{else}}
+        <p class="muted">No instructions provided yet.</p>
+      {{/if}}
+    </section>
+  </div>
+</section>

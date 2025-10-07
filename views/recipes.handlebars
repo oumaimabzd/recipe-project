@@ -8,12 +8,12 @@
 {{! // If there are recipes, show them. If not, show "No recipes yet". }}
 {{#if recipes.length}}
 
-  {{! // Recipe list container (no bullets, no padding) }}
+  {{! // Recipe list container }}
   <ul
     style="list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px;"
   >
 
-    {{! // Loop through each recipe (dubble brackets for dynamic data)}}
+    {{! Loop through each recipe}}
     {{#each recipes}}
       <li
         style="border:1px solid #e6e6e6; border-radius:14px; padding:14px; background:#fff; transition:box-shadow .2s, transform .1s;"

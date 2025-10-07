@@ -5,6 +5,7 @@ const express = require("express"); // // web server framework
 const exphbs = require("express-handlebars"); // // lets us use Handlebars templates
 const sqlite3 = require("sqlite3").verbose(); // // talk to the SQLite database file
 const bodyParser = require("body-parser"); // for the password
+const bcrypt = require("bcrypt"); // // used to hash passwords and check them securely
 //  DATABASE FILE (where your data lives)
 
 const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
@@ -13,9 +14,23 @@ const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full pat
 
 const app = express(); // // create the Express app (the server)
 const PORT = 3003; // // web address will be http://localhost:3003
+const PW_COL = "password_hash";
+const SALT_ROUNDS = 12; // // how strong the hashing is
+
+// one time use function for hashing the password
+// function hashPassword(pw, saltRounds) {
+//   // pw = plain-text password, saltRounds = work factor (12 used in lab)
+//   bcrypt.hash(pw, saltRounds, function(err, hash) {
+//     if (err) {
+//       console.log('Error hashing password:', err);
+//     } else {
+//       console.log('---> Hashed password:', hash);
+//       // copy the printed hash if you want to paste a single example hash
+//     }
+//   });
+// }
 
 // This serves files from the "public" folder directly in the browser.
-// Example: "public/css/styles.css" is available at "/css/styles.css".
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({ extended: false }));
 //  HANDLEBARS
@@ -28,7 +43,6 @@ app.set("views", path.join(__dirname, "views")); // // templates live in /views
 //  OPEN THE DATABASE
 
 // Try to open the database file. If it fails, show an error in the console.
-// Turn ON foreign keys so relations are respected (good practice).
 const db = new sqlite3.Database(DB_FILE, (err) => {
   if (err) {
     console.error("Could not open the database file:", err);
@@ -41,33 +55,72 @@ const db = new sqlite3.Database(DB_FILE, (err) => {
 // ROUTES (what to show on each URL)
 
 //  Home page (simple static page)
-// app.get("/", (req, res) => {
-// // Render "views/home.handlebars" and pass a title variable the page can use
-//   res.render("home", { title: "Home" });
-// });
 app.get("/", (req, res) => {
+  //  // Render "views/home.handlebars" and pass a title variable the page can use
+  res.render("home", { title: "Home" });
+});
+
+//login page
+app.get("/login", (req, res) => {
   res.render("login", {
     title: "Login Form",
     heading: "Log in",
   });
 });
 
-app.post("/", (req, res) => {
+// app.post("/login", (req, res) => {
+//   const { un, pw } = req.body;
+
+//   if (un === "admin" && pw === "wdf#2025") {
+//     return res.redirect("/recipes");
+//   } else {
+//     res.render("login", {
+//       title: "Login Form",
+//       heading: "Log in",
+//       error: "Wrong Username or Password",
+//       un,
+//     });
+//   }
+// });
+app.post("/login", (req, res) => {
   const { un, pw } = req.body;
 
-  if (un === "admin" && pw === "wdf#2025") {
-    res.send("You are logged in!");
-  } else {
-    res.render("login", {
-      title: "Login Form",
-      heading: "Log in",
-      error: "Wrong Username or Password",
-      un,
+  // //  Find the user row by username
+  const sql = `SELECT id, username, ${PW_COL} AS password_hash FROM users WHERE username = ? LIMIT 1`; // added limit 1 cause un is unique
+  db.get(sql, [un], (err, row) => {
+    if (err) {
+      console.error("Login DB error:", err);
+      return res.status(500).send("Database error.");
+    }
+
+    if (!row) {
+      return res.render("login", {
+        title: "Login Form",
+        heading: "Log in",
+        error: "Wrong Username or Password",
+        un,
+      });
+    }
+
+    // // Compare the typed password with the bcrypt in DB
+    bcrypt.compare(pw, row.password_hash, (cmpErr, ok) => {
+      if (cmpErr || !ok) {
+        // // not matching back to login
+        return res.render("login", {
+          title: "Login Form",
+          heading: "Log in",
+          error: "Wrong Username or Password",
+          un,
+        });
+      }
+
+      // // login ok
+      return res.redirect("/recipes");
     });
-  }
+  });
 });
 
-//  About page (simple static page)
+//  About page
 app.get("/about", (req, res) => {
   res.render("about", { title: "About" });
 });
@@ -135,48 +188,49 @@ app.get("/recipes", (req, res) => {
   });
 });
 
-//  RECIPE DETAIL PAGE
-// // URL example: /item/5
-// // Show one recipe with its ingredients and images.
 app.get("/item/:id", (req, res) => {
-  const recipeId = req.params.id; // // read the id from the URL (like /item/5 -> "5")
+  const recipeId = req.params.id;
 
-  // 1) Get the recipe + its category name
+  // 1) Get the recipe + category name
   const recipeSql = `
     SELECT r.*, c.name AS category
     FROM recipes r
     JOIN categories c ON c.id = r.category_id
     WHERE r.id = ?
   `;
+
   db.get(recipeSql, [recipeId], (recipeErr, recipe) => {
-    if (recipeErr) {
-      return res.status(500).send("Error loading recipe.");
-    }
-    if (!recipe) {
-      // // No recipe with that id -> show 404 page
-      return res.status(404).render("404", { title: "Not found" });
-    }
+    if (recipeErr) return res.status(500).send("Error loading recipe.");
+    if (!recipe) return res.status(404).render("404", { title: "Not found" });
 
-    // 2) Get the ingredients for this recipe
-    const ingSql = `SELECT name, amount FROM ingredients WHERE recipe_id = ?`;
+    // 2) Ingredients for this recipe
+    const ingSql = `
+      SELECT name, amount
+      FROM ingredients
+      WHERE recipe_id = ?
+      ORDER BY id ASC
+    `;
     db.all(ingSql, [recipeId], (ingErr, ingredients) => {
-      if (ingErr) {
-        return res.status(500).send("Error loading ingredients.");
-      }
+      if (ingErr) return res.status(500).send("Error loading ingredients.");
 
-      // 3) Get any images for this recipe (your table allows one image per recipe)
-      const imgSql = `SELECT filename FROM images WHERE recipe_id = ?`;
-      db.all(imgSql, [recipeId], (imgErr, images) => {
-        if (imgErr) {
-          return res.status(500).send("Error loading images.");
-        }
+      // 3) Single image
+      const imgSql = `SELECT filename FROM images WHERE recipe_id = ? LIMIT 1`;
+      db.get(imgSql, [recipeId], (imgErr, imageRow) => {
+        if (imgErr) return res.status(500).send("Error loading image.");
 
-        // 4) Render the detail page with all the data
+        // 4) Prepare instructions as an array of steps
+        const instructionsLines = (recipe.instructions || "")
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        // 5) Render detail page
         res.render("detail", {
           title: recipe.title,
-          recipe, // // the recipe row (title, summary, instructions, etc.)
-          ingredients, // // list of its ingredients
-          images, // // list of its image(s)
+          recipe, // { id, title, summary, instructions, category, ... }
+          ingredients, // array of { name, amount }
+          images: imageRow ? [imageRow] : [], // keep array shape for the template
+          instructionsLines, // array of strings for <ol>
         });
       });
     });
