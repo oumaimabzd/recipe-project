@@ -8,12 +8,12 @@ const bodyParser = require("body-parser"); // for the password
 const bcrypt = require("bcrypt"); // // used to hash passwords and check them securely
 //  DATABASE FILE (where your data lives)
 
-const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
-
 //  APP SETUP (make the server)
 
 const app = express(); // // create the Express app (the server)
 const PORT = 3003; // // web address will be http://localhost:3003
+const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
+
 const PW_COL = "password_hash";
 const SALT_ROUNDS = 12; // // how strong the hashing is
 
@@ -124,7 +124,45 @@ app.post("/login", (req, res) => {
 app.get("/about", (req, res) => {
   res.render("about", { title: "About" });
 });
+// CATEGORIES PAGE
 
+app.get("/categories", (req, res) => {
+  const sqlCategories =
+    "SELECT id, name, description FROM categories ORDER BY name ASC";
+
+  db.all(sqlCategories, [], (err, categories) => {
+    if (err) {
+      return res.send("Error loading categories.");
+    }
+
+    const catData = [];
+
+    categories.forEach((oneCategory, index) => {
+      const sqlRecipe = `
+        SELECT id, title, summary
+        FROM recipes
+        WHERE category_id = ?
+        LIMIT 1
+      `;
+
+      db.get(sqlRecipe, [oneCategory.id], (recErr, oneRecipe) => {
+        catData.push({
+          id: oneCategory.id,
+          name: oneCategory.name,
+          description: oneCategory.description,
+          recipe: oneRecipe || null, //  if no recipe found
+        });
+
+        if (catData.length === categories.length) {
+          res.render("categories", {
+            title: "Categories",
+            categories: catData,
+          });
+        }
+      });
+    });
+  });
+});
 //  RECIPES LIST WITH PAGINATION
 
 //  We show 3 recipes per page.
