@@ -6,6 +6,8 @@ const exphbs = require("express-handlebars"); // // lets us use Handlebars templ
 const sqlite3 = require("sqlite3").verbose(); // // talk to the SQLite database file
 const bodyParser = require("body-parser"); // for the password
 const bcrypt = require("bcrypt"); // // used to hash passwords and check them securely
+const fs = require("fs/promises"); // later delete files
+const multer = require("multer"); // uploads
 //  DATABASE FILE (where your data lives)
 
 const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
@@ -33,6 +35,10 @@ const SALT_ROUNDS = 12; // // how strong the hashing is
 // This serves files from the "public" folder directly in the browser.
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({ extended: false }));
+
+//multer method
+const fs = require("fs/promises"); // to delete files later
+const multer = require("multer");
 //  HANDLEBARS
 
 //  Tell Express how to render ".handlebars" files and which layout to use.
