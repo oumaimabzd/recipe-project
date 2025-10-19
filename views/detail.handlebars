@@ -1,40 +1,57 @@
-<link rel="stylesheet" href="public/css/detail.css" />
+<link rel="stylesheet" href="/css/detail.css" />
 
 <section class="detail">
-  <header class="detail.header">
-    <h1 class="detail.title">{{recipe.title}}</h1>
+
+  <!-- Header -->
+  <header class="detail-header">
+    <h1 class="detail-title">{{recipe.title}}</h1>
     {{#if recipe.category}}
-      <span class="detail.badge">{{recipe.category}}</span>
+      <span class="detail-badge">Category: {{recipe.category}}</span>
     {{/if}}
   </header>
 
-  <div class="detail.hero">
+  <!-- Hero  -->
+  <div class="detail-hero">
     {{#if images.length}}
       <img
-        class="detail.image"
-        src="/img/{{images.0.filename}}"
+        class="detail-image"
+        src="{{images.0.web}}?v={{cacheBuster}}"
         alt="{{recipe.title}}"
         loading="lazy"
       />
     {{else}}
-      <div class="detail.image.placeholder" aria-hidden="true">No image</div>
+      <div class="detail-image placeholder" aria-hidden="true">No image</div>
     {{/if}}
 
     {{#if recipe.summary}}
-      <p class="detail.summary">{{recipe.summary}}</p>
+      <p class="detail-summary">{{recipe.summary}}</p>
     {{/if}}
   </div>
-  <!-- Manage image actions -->
-  <div style="margin: .75rem 0;">
+
+  <!-- Upload / Delete -->
+  <div class="detail-actions">
+    <form
+      action="/item/{{recipe.id}}/image"
+      method="POST"
+      enctype="multipart/form-data"
+      class="form-inline"
+    >
+      <input type="file" name="image" accept="image/png, image/jpeg" required />
+      <button type="submit" class="btn btn-primary">Upload / Replace Image</button>
+    </form>
+
     {{#if images.length}}
-      <a href="/images/edit/{{images.0.id}}">Edit this image filename</a>
-      &nbsp;|&nbsp;
-      <a href="/images/delete/{{images.0.id}}">Delete image row</a>
-    {{else}}
-      <a href="/images/new?recipe_id={{recipe.id}}">Add image filename for this
-        recipe</a>
+      <form
+        action="/item/{{recipe.id}}/image/delete"
+        method="POST"
+        class="form-inline"
+      >
+        <button type="submit" class="btn btn-danger">Delete Image</button>
+      </form>
     {{/if}}
   </div>
+
+  <!-- Ingredients /Instructions -->
   <div class="detail.grid">
     <section class="detail.ingredients">
       <h2>Ingredients</h2>
@@ -42,9 +59,9 @@
         <ul class="ingredients.list">
           {{#each ingredients}}
             <li class="ingredients.item">
-              {{#if this.amount}}<span
-                  class="ingredients.amount"
-                >{{this.amount}}</span>{{/if}}
+              {{#if this.amount}}
+                <span class="ingredients.amount">{{this.amount}}</span>
+              {{/if}}
               <span class="ingredients.name">{{this.name}}</span>
             </li>
           {{/each}}
@@ -57,13 +74,11 @@
     <section class="detail.instructions">
       <h2>Instructions</h2>
       {{#if instructionsLines}}
-        {{#if instructionsLines.length}}
-          <ol class="instructions.list">
-            {{#each instructionsLines}}
-              <li class="instructions.step">{{this}}</li>
-            {{/each}}
-          </ol>
-        {{/if}}
+        <ol class="instructions.list">
+          {{#each instructionsLines}}
+            <li class="instructions.step">{{this}}</li>
+          {{/each}}
+        </ol>
       {{else if recipe.instructions}}
         <div class="instructions.block">
           {{{recipe.instructions}}}

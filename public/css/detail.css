@@ -1,0 +1,182 @@
+:root {
+  --bg: #fafafa;
+  --text: #222;
+  --muted: #666;
+  --border: #e0e0e0;
+  --accent: #0b57d0;
+  --accent-light: #e8f0fe;
+  --danger: #d9534f;
+  --danger-dark: #c0392b;
+  --radius: 10px;
+  --shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  background: var(--bg);
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Main Container */
+.detail {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/*  Header */
+.detail.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.detail.title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.detail.badge {
+  font-size: 0.85rem;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+/*  Hero 
+*/
+.detail.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Image Frame */
+.detail.image {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  display: block;
+  box-shadow: var(--shadow);
+}
+
+/* Placeholder for missing image */
+.detail.image.placeholder {
+  width: 320px;
+  height: 220px;
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+  color: var(--muted);
+  background: #f8f9fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-style: italic;
+}
+
+.detail.summary {
+  color: var(--muted);
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* Buttons  */
+form[action*="/image"] {
+  margin: 0.75rem 0;
+}
+
+button,
+input[type="submit"] {
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Primary (Upload) */
+button[type="submit"],
+form[action$="/image"] button {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(11, 87, 208, 0.2);
+}
+
+button[type="submit"]:hover,
+form[action$="/image"] button:hover {
+  background: #0949bb;
+}
+
+/*  (Delete) */
+form[action$="delete"] button {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(217, 83, 79, 0.2);
+}
+
+form[action$="delete"] button:hover {
+  background: var(--danger-dark);
+}
+
+/* Ingredients & Instructions */
+.detail.grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.detail.ingredients h2,
+.detail.instructions h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.ingredients.list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ingredients.item {
+  margin: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ingredients.amount {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.instructions.list {
+  padding-left: 1.25rem;
+}
+
+.instructions.step {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.instructions.block {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
