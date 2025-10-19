@@ -1,2 +1,19 @@
-<h1>Home</h1>
-<p>Welcome to Recipe Project </p>
+<link rel="stylesheet" href="/css/home.css" />
+
+<section class="home">
+  <div class="home-card">
+    <h1> Welcome to Recipe Project</h1>
+    <p>
+      with love Oumaima and Layla.
+    </p>
+
+    {{#if session.isLoggedIn}}
+      <p class="home-user">Hi
+        <strong>{{session.username}}</strong>! Ready to cook something new
+        today?</p>
+
+    {{else}}
+      <a href="/recipes" class="home-btn">Browse Recipes</a>
+    {{/if}}
+  </div>
+</section>

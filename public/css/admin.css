@@ -1,0 +1,136 @@
+:root {
+  --bg: #fafafa;
+  --card: #fff;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --primary: #0b57d0;
+  --primary-600: #0949bb;
+  --danger: #d9534f;
+  --danger-600: #c0392b;
+  --radius: 12px;
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.admin-users {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: var(--text);
+}
+
+.admin-header h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.8rem;
+}
+.muted {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.users-table th,
+.users-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0.6rem;
+  vertical-align: middle;
+}
+
+.users-table thead th {
+  text-align: left;
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.users-table tr.editing td {
+  background: #f8fbff;
+}
+
+.inline-form label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.inline-form input {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.stack .grid-2,
+.inline-form .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn {
+  display: inline-block;
+  border: 1px solid var(--border);
+  background: #f3f4f6;
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #eef0f3;
+}
+
+.btn-small {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+}
+.btn-primary:hover {
+  background: var(--primary-600);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover {
+  background: var(--danger-600);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.btn-ghost:hover {
+  background: #f3f4f6;
+  color: var(--text);
+}
+/* --- iPhone SE Responsive (max 380px) --- */
