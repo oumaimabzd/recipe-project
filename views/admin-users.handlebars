@@ -1,0 +1,83 @@
+<link rel="stylesheet" href="/css/admin.css" />
+
+<section class="admin-users">
+  <header class="admin-header">
+    <h1>Users</h1>
+    <p class="muted">Manage users (admins only).</p>
+  </header>
+
+  {{!-- Users table --}}
+  <div class="card">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th style="width:72px;">ID</th>
+          <th>Username</th>
+          <th style="width:220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#if users.length}}
+          {{#each users}}
+            {{#if (eq id ../userToEdit.id)}}
+              <tr class="editing">
+                <td>#{{id}}</td>
+                <td colspan="2">
+                  <form action="/admin/users/{{id}}/edit" method="POST" class="inline-form">
+                    <div class="grid-2">
+                      <div>
+                        <label for="u-{{id}}">Username</label>
+                        <input id="u-{{id}}" type="text" name="username" value="{{username}}" required />
+                      </div>
+                      <div>
+                        <label for="p-{{id}}">New password (optional)</label>
+                        <input id="p-{{id}}" type="password" name="password" placeholder="Leave blank to keep current" />
+                      </div>
+                    </div>
+                    <div class="row-actions">
+                      <button class="btn btn-primary" type="submit">Save</button>
+                      <a class="btn btn-ghost" href="/admin/users">Cancel</a>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            {{else}}
+              <tr>
+                <td>#{{id}}</td>
+                <td>{{username}}</td>
+                <td class="row-actions">
+                  <a class="btn btn-small" href="/admin/users?edit={{id}}">Edit</a>
+                  <form action="/admin/users/{{id}}/delete" method="POST" onsubmit="return confirm('Delete user {{username}}?');" style="display:inline;">
+                    <button class="btn btn-danger btn-small" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {{/if}}
+          {{/each}}
+        {{else}}
+          <tr>
+            <td colspan="3" class="muted" style="text-align:center;">No users yet.</td>
+          </tr>
+        {{/if}}
+      </tbody>
+    </table>
+  </div>
+
+  {{!-- Add new user form  --}}
+  <div class="card">
+    <h2>Add New User</h2>
+    <form action="/admin/users" method="POST" class="stack">
+      <div class="grid-2">
+        <div>
+          <label for="new-username">Username</label>
+          <input id="new-username" type="text" name="username" required />
+        </div>
+        <div>
+          <label for="new-password">Password</label>
+          <input id="new-password" type="password" name="password" required />
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Create User</button>
+    </form>
+  </div>
+</section>

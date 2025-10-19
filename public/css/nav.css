@@ -1,0 +1,71 @@
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(90deg, #ffffff, #f4f6f9);
+  border-bottom: 1px solid #e2e2e2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topnav a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  position: relative;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.topnav a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #0b57d0;
+  transition: width 0.25s ease;
+}
+
+.topnav a:hover {
+  color: #0b57d0;
+  transform: translateY(-1px);
+}
+
+.topnav a:hover::after {
+  width: 100%;
+}
+
+.topnav .spacer {
+  flex-grow: 1;
+}
+
+.topnav .user {
+  color: #555;
+  background: #e9efff;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 0 0 1px #d0dcff;
+}
+
+.topnav a.logout {
+  background: #0b57d0;
+  color: #fff;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background 0.25s ease, transform 0.2s ease;
+}
+
+.topnav a.logout:hover {
+  background: #0948b8;
+  transform: translateY(-1px);
+}

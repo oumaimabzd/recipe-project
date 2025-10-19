@@ -1,0 +1,19 @@
+<link rel="stylesheet" href="/css/home.css" />
+
+<section class="home">
+  <div class="home-card">
+    <h1> About</h1>
+    <p>
+      Welcome to our recipe website, here we have collected nice recipes made by
+      two NMD students. Oumaima Bouzidi and Layla Abdullahi.
+    </p>
+
+    {{#if session.isLoggedIn}}
+      <p>
+        enjoy!</p>
+      <a href="/" class="home-btn">go back to Home</a>
+    {{else}}
+
+    {{/if}}
+  </div>
+</section>

@@ -1,63 +1,107 @@
-//  IMPORTS (bring tools we need)
+//  IMPORTS
+const path = require("path");
+const express = require("express");
+const exphbs = require("express-handlebars");
+const sqlite3 = require("sqlite3").verbose();
+const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
+const fs = require("fs/promises");
+const multer = require("multer");
+const session = require("express-session");
+const connectSqlite3 = require("connect-sqlite3");
 
-const path = require("path"); // // helps build safe file paths
-const express = require("express"); // // web server framework
-const exphbs = require("express-handlebars"); // // lets us use Handlebars templates
-const sqlite3 = require("sqlite3").verbose(); // // talk to the SQLite database file
-const bodyParser = require("body-parser"); // for the password
-const bcrypt = require("bcrypt"); // // used to hash passwords and check them securely
-//  DATABASE FILE (where your data lives)
-
-const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
-
-//  APP SETUP (make the server)
-
+//  APP + DB FILE
 const app = express();
 const PORT = 3003;
 const DB_FILE = path.join(__dirname, "recipe.sqlite3.db");
 
-// for login checks already hashed in DB
+// login constants (DB already stores hashed passwords)
 const PW_COL = "password_hash";
-const SALT_ROUNDS = 12;
 
-//
+//  STATIC + PARSER
 app.use(express.static(path.join(__dirname, "public")));
-
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 //  HANDLEBARS
-app.engine("handlebars", exphbs.engine({ defaultLayout: "main" }));
+app.engine(
+  "handlebars",
+  exphbs.engine({
+    defaultLayout: "main",
+    helpers: {
+      eq(a, b) {
+        return a == b;
+      },
+    },
+  })
+);
 app.set("view engine", "handlebars");
 app.set("views", path.join(__dirname, "views"));
 
-// OPEN THE SQLITE DATABASE
+//  SQLITE OPEN
 const db = new sqlite3.Database(DB_FILE, (err) => {
   if (err) {
     console.error("Could not open the database file:", err);
   } else {
     console.log("Connected to database:", DB_FILE);
-    db.run("PRAGMA foreign_keys = ON"); // make SQLite respect foreign keys
+    db.run("PRAGMA foreign_keys = ON");
   }
 });
 
-// MULTER
+//  SESSIONS (store in sqlite)
+const SQLiteStore = connectSqlite3(session);
+app.use(
+  session({
+    store: new SQLiteStore({ db: "session-db.db" }),
+    saveUninitialized: false,
+    resave: false,
+    secret: "This123Is@Another#456GreatSecret678%Sentence",
+  })
+);
+
+// make session available in every template as {{session}}
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
+//  AUTH MIDDLEWARE
+function requireLogin(req, res, next) {
+  if (req.session?.isLoggedIn) return next();
+  return res.status(401).render("login", {
+    title: "Login",
+    heading: "Log in",
+    error: "Please log in to continue.",
+  });
+}
+
+function requireAdmin(req, res, next) {
+  if (req.session?.isAdmin) return next();
+  return res.status(403).render("login", {
+    title: "Login",
+    heading: "Log in",
+    error: "Admin access required.",
+  });
+}
+
+//  MULTER (teacher-style)
+// Files go to /public/img ; DB stores "/img/<random>.ext"
 const UPLOADS_DIR = path.join(__dirname, "public", "img");
 
+// ensure folder exists
 (async () => {
   try {
     await fs.mkdir(UPLOADS_DIR, { recursive: true });
   } catch {}
 })();
 
-// diskStorage so we keep the file extension (.jpg/.png) and make a random name
+// random name, keep original extension
 const storage = multer.diskStorage({
-  //save the physical file
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-
-  // how to name the file (keep it simple: random + original ext)
   filename: (req, file, cb) => {
     const ext = (path.extname(file.originalname) || ".jpg").toLowerCase();
-    const rnd = Math.random().toString(36).slice(2, 10); // e.g. "q7x3h2k9"
-    cb(null, rnd + ext); // final filename like "q7x3h2k9.jpg"
+    const rnd = Math.random().toString(36).slice(2, 10);
+    cb(null, rnd + ext);
   },
 });
 
@@ -70,18 +114,28 @@ const upload = multer({
   },
 });
 
-// ROUTE
+//  ROUTES
 
 // Home
 app.get("/", (req, res) => {
   res.render("home", { title: "Home" });
 });
 
-// Login
+// About
+app.get("/about", (req, res) => {
+  res.render("about", { title: "About" });
+});
+//contact
+app.get("/contact", (req, res) => {
+  res.render("contact", { title: "contact" });
+});
+
+// Login (page)
 app.get("/login", (req, res) => {
   res.render("login", { title: "Login Form", heading: "Log in" });
 });
 
+// Login (process): any user from DB; mark admin if username === 'admin'
 app.post("/login", (req, res) => {
   const { un, pw } = req.body;
 
@@ -97,7 +151,6 @@ app.post("/login", (req, res) => {
       return res.status(500).send("Database error.");
     }
     if (!row) {
-      // username not found
       return res.render("login", {
         title: "Login Form",
         heading: "Log in",
@@ -106,7 +159,6 @@ app.post("/login", (req, res) => {
       });
     }
 
-    // compare typed password vs hashed
     bcrypt.compare(pw, row.password_hash, (cmpErr, ok) => {
       if (cmpErr || !ok) {
         return res.render("login", {
@@ -116,17 +168,24 @@ app.post("/login", (req, res) => {
           un,
         });
       }
-      res.redirect("/recipes");
+      // success → create session flags
+      req.session.isLoggedIn = true;
+      req.session.userId = row.id;
+      req.session.username = row.username;
+      req.session.isAdmin = row.username === "admin";
+
+      // redirect to HOME (as you asked)
+      return res.redirect("/");
     });
   });
 });
 
-// About page
-app.get("/about", (req, res) => {
-  res.render("about", { title: "About" });
+// Logout
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/"));
 });
 
-// Categories page:
+// Categories: list each category + optional example recipe
 app.get("/categories", (req, res) => {
   const sqlCategories = `
     SELECT id, name, description
@@ -139,8 +198,7 @@ app.get("/categories", (req, res) => {
       return res.render("categories", { title: "Categories", categories: [] });
     }
 
-    const catData = []; // we'll push each category with its one recipe
-
+    const catData = [];
     categories.forEach((cat) => {
       const sqlRecipe = `
         SELECT id, title, summary
@@ -154,7 +212,7 @@ app.get("/categories", (req, res) => {
           id: cat.id,
           name: cat.name,
           description: cat.description,
-          recipe: oneRecipe,
+          recipe: oneRecipe || null,
         });
 
         if (catData.length === categories.length) {
@@ -168,13 +226,12 @@ app.get("/categories", (req, res) => {
   });
 });
 
-// Recipes list with pagination (3 per page)
+// Recipes list (pagination)
 app.get("/recipes", (req, res) => {
   const recipesPerPage = 3;
   let page = Number(req.query.page) || 1;
   if (page < 1) page = 1;
 
-  // how many total recipes
   const countSql = `SELECT COUNT(*) AS total FROM recipes`;
   db.get(countSql, [], (countErr, countRow) => {
     if (countErr) return res.status(500).send("Error counting recipes.");
@@ -185,7 +242,6 @@ app.get("/recipes", (req, res) => {
 
     const offset = (page - 1) * recipesPerPage;
 
-    // get the rows for this page
     const listSql = `
       SELECT r.id, r.title, r.summary, c.name AS category
       FROM recipes r
@@ -215,7 +271,6 @@ app.get("/recipes", (req, res) => {
 app.get("/item/:id", (req, res) => {
   const recipeId = req.params.id;
 
-  // get the recipe and category name
   const recipeSql = `
     SELECT r.*, c.name AS category
     FROM recipes r
@@ -226,7 +281,6 @@ app.get("/item/:id", (req, res) => {
     if (recipeErr) return res.status(500).send("Error loading recipe.");
     if (!recipe) return res.status(404).render("404", { title: "Not found" });
 
-    // ingredients for this recipe
     const ingSql = `
       SELECT name, amount
       FROM ingredients
@@ -236,7 +290,6 @@ app.get("/item/:id", (req, res) => {
     db.all(ingSql, [recipeId], (ingErr, ingredients) => {
       if (ingErr) return res.status(500).send("Error loading ingredients.");
 
-      // latest image for this recipe
       const imgSql = `
         SELECT id, filename
         FROM images
@@ -247,6 +300,7 @@ app.get("/item/:id", (req, res) => {
       db.get(imgSql, [recipeId], (imgErr, imageRow) => {
         if (imgErr) return res.status(500).send("Error loading image.");
 
+        // normalize path for template
         let images = [];
         if (imageRow) {
           const raw = imageRow.filename || "";
@@ -263,63 +317,68 @@ app.get("/item/:id", (req, res) => {
           title: recipe.title,
           recipe,
           ingredients,
-          images,
+          images, // use {{images.0.web}}
           instructionsLines,
-          cacheBuster: Date.now(),
+          cacheBuster: Date.now(), // bust caching after uploads
         });
       });
     });
   });
 });
 
-// IMAGE UPLOAD
-app.post("/item/:id/image", upload.single("image"), (req, res) => {
-  const recipeId = req.params.id;
+//  IMAGE UPLOAD/DELETE (must be logged in)
 
-  // make sure a file was chosen
-  if (!req.file)
-    return res.status(400).send("Please choose a PNG or JPG image.");
+// Upload / replace image
+app.post(
+  "/item/:id/image",
+  requireLogin,
+  upload.single("image"),
+  (req, res) => {
+    const recipeId = req.params.id;
+    if (!req.file)
+      return res.status(400).send("Please choose a PNG or JPG image.");
 
-  const webPath = "/img/" + req.file.filename; // physical file is in /public/img
+    const webPath = "/img/" + req.file.filename;
 
-  db.get(
-    `SELECT id, filename FROM images WHERE recipe_id = ?`,
-    [recipeId],
-    (selErr, row) => {
-      if (selErr) return res.status(500).send("DB error (reading image).");
+    db.get(
+      `SELECT id, filename FROM images WHERE recipe_id = ?`,
+      [recipeId],
+      (selErr, row) => {
+        if (selErr) return res.status(500).send("DB error (reading image).");
 
-      if (!row) {
-        const ins = `INSERT INTO images (recipe_id, filename, uploaded_at)
+        if (!row) {
+          const ins = `INSERT INTO images (recipe_id, filename, uploaded_at)
                      VALUES (?, ?, CURRENT_TIMESTAMP)`;
-        db.run(ins, [recipeId, webPath], (insErr) => {
-          if (insErr)
-            return res.status(500).send("DB error (inserting image).");
-          res.redirect(`/item/${recipeId}`);
-        });
-      } else {
-        // replace: UPDATE the row and delete the old physical file
-        const oldWebPath = row.filename;
-        const upd = `UPDATE images
+          db.run(ins, [recipeId, webPath], (insErr) => {
+            if (insErr)
+              return res.status(500).send("DB error (inserting image).");
+            res.redirect(`/item/${recipeId}`);
+          });
+        } else {
+          const oldWebPath = row.filename;
+          const upd = `UPDATE images
                      SET filename = ?, uploaded_at = CURRENT_TIMESTAMP
                      WHERE recipe_id = ?`;
-        db.run(upd, [webPath, recipeId], async (updErr) => {
-          if (updErr) return res.status(500).send("DB error (updating image).");
+          db.run(upd, [webPath, recipeId], async (updErr) => {
+            if (updErr)
+              return res.status(500).send("DB error (updating image).");
 
-          if (oldWebPath) {
-            const oldBase = oldWebPath.replace(/^\/img\//, "");
-            try {
-              await fs.unlink(path.join(UPLOADS_DIR, oldBase));
-            } catch {}
-          }
-          res.redirect(`/item/${recipeId}`);
-        });
+            if (oldWebPath) {
+              const oldBase = oldWebPath.replace(/^\/img\//, "");
+              try {
+                await fs.unlink(path.join(UPLOADS_DIR, oldBase));
+              } catch {}
+            }
+            res.redirect(`/item/${recipeId}`);
+          });
+        }
       }
-    }
-  );
-});
+    );
+  }
+);
 
-// IMAGE DELETE
-app.post("/item/:id/image/delete", (req, res) => {
+// Delete image (DB row + file)
+app.post("/item/:id/image/delete", requireLogin, (req, res) => {
   const recipeId = req.params.id;
 
   db.get(
@@ -327,24 +386,21 @@ app.post("/item/:id/image/delete", (req, res) => {
     [recipeId],
     async (err, row) => {
       if (err) return res.status(500).send("DB error (select for delete).");
-      if (!row) return res.redirect(`/item/${recipeId}`); // nothing to delete
+      if (!row) return res.redirect(`/item/${recipeId}`);
 
-      // delete the DB row
       db.run(
         `DELETE FROM images WHERE recipe_id = ?`,
         [recipeId],
         async (delErr) => {
           if (delErr) return res.status(500).send("DB error (delete row).");
 
-          //  delete the physical
-          const webPath = row.filename; // e.g. "/img/abcd1234.jpg"
+          const webPath = row.filename;
           const baseName = webPath.replace(/^\/img\//, "");
           if (baseName) {
             try {
               await fs.unlink(path.join(UPLOADS_DIR, baseName));
             } catch {}
           }
-
           res.redirect(`/item/${recipeId}`);
         }
       );
@@ -352,12 +408,110 @@ app.post("/item/:id/image/delete", (req, res) => {
   );
 });
 
-//404 error
+//  Admin Users CRUD
+app.get("/admin/users", requireAdmin, (req, res) => {
+  const editId = Number(req.query.edit) || null;
+
+  db.all(
+    `SELECT id, username FROM users ORDER BY id ASC`,
+    [],
+    (listErr, users) => {
+      if (listErr) return res.status(500).send("DB error (list users).");
+
+      if (!editId) {
+        // Show list
+        return res.render("admin-users", {
+          title: "Manage Users",
+          users,
+          mode: "create",
+        });
+      }
+
+      db.get(
+        `SELECT id, username FROM users WHERE id = ?`,
+        [editId],
+        (readErr, userToEdit) => {
+          if (readErr) return res.status(500).send("DB error (read user).");
+          if (!userToEdit) return res.redirect("/admin/users"); // id not found
+
+          return res.render("admin-users", {
+            title: "Manage Users",
+            users,
+            mode: "edit",
+            userToEdit,
+          });
+        }
+      );
+    }
+  );
+});
+
+app.post("/admin/users", requireAdmin, (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  if (!username || !password) {
+    return res.status(400).send("Username and password are required.");
+  }
+
+  bcrypt.hash(password, 12, (err, hash) => {
+    if (err) return res.status(500).send("Error hashing password.");
+    db.run(
+      `INSERT INTO users (username, password_hash) VALUES (?, ?)`,
+      [username.trim(), hash],
+      (insErr) => {
+        if (insErr) return res.status(500).send("DB error (create user).");
+        res.redirect("/admin/users");
+      }
+    );
+  });
+});
+
+app.post("/admin/users/:id/edit", requireAdmin, (req, res) => {
+  const userId = req.params.id;
+  const { username, password } = req.body;
+  if (!username) return res.status(400).send("Username is required.");
+
+  const cleanUsername = username.trim();
+
+  // hash & update both
+  if (password && password.trim()) {
+    bcrypt.hash(password, 12, (err, hash) => {
+      if (err) return res.status(500).send("Error hashing password.");
+      db.run(
+        `UPDATE users SET username = ?, password_hash = ? WHERE id = ?`,
+        [cleanUsername, hash, userId],
+        (updErr) => {
+          if (updErr) return res.status(500).send("DB error (update user).");
+          res.redirect("/admin/users");
+        }
+      );
+    });
+  } else {
+    // Only update username
+    db.run(
+      `UPDATE users SET username = ? WHERE id = ?`,
+      [cleanUsername, userId],
+      (updErr) => {
+        if (updErr) return res.status(500).send("DB error (update user).");
+        res.redirect("/admin/users");
+      }
+    );
+  }
+});
+
+app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
+  db.run(`DELETE FROM users WHERE id = ?`, [req.params.id], (delErr) => {
+    if (delErr) return res.status(500).send("DB error (delete user).");
+    res.redirect("/admin/users");
+  });
+});
+
+// 404
 app.use((req, res) => {
   res.status(404).render("404", { title: "Not found" });
 });
 
-// server start
+//  START
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
