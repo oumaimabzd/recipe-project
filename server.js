@@ -6,100 +6,98 @@ const exphbs = require("express-handlebars"); // // lets us use Handlebars templ
 const sqlite3 = require("sqlite3").verbose(); // // talk to the SQLite database file
 const bodyParser = require("body-parser"); // for the password
 const bcrypt = require("bcrypt"); // // used to hash passwords and check them securely
-const fs = require("fs/promises"); // later delete files
-const multer = require("multer"); // uploads
 //  DATABASE FILE (where your data lives)
 
 const DB_FILE = path.join(__dirname, "recipe.sqlite3.db"); // // make a full path to the database file
 
 //  APP SETUP (make the server)
 
-const app = express(); // // create the Express app (the server)
-const PORT = 3003; // // web address will be http://localhost:3003
+const app = express();
+const PORT = 3003;
+const DB_FILE = path.join(__dirname, "recipe.sqlite3.db");
+
+// for login checks already hashed in DB
 const PW_COL = "password_hash";
-const SALT_ROUNDS = 12; // // how strong the hashing is
+const SALT_ROUNDS = 12;
 
-// one time use function for hashing the password
-// function hashPassword(pw, saltRounds) {
-//   // pw = plain-text password, saltRounds = work factor (12 used in lab)
-//   bcrypt.hash(pw, saltRounds, function(err, hash) {
-//     if (err) {
-//       console.log('Error hashing password:', err);
-//     } else {
-//       console.log('---> Hashed password:', hash);
-//       // copy the printed hash if you want to paste a single example hash
-//     }
-//   });
-// }
-
-// This serves files from the "public" folder directly in the browser.
+//
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use(bodyParser.urlencoded({ extended: false }));
-
-//multer method
-const fs = require("fs/promises"); // to delete files later
-const multer = require("multer");
 //  HANDLEBARS
+app.engine("handlebars", exphbs.engine({ defaultLayout: "main" }));
+app.set("view engine", "handlebars");
+app.set("views", path.join(__dirname, "views"));
 
-//  Tell Express how to render ".handlebars" files and which layout to use.
-app.engine("handlebars", exphbs.engine({ defaultLayout: "main" })); // // default layout = "views/layouts/main.handlebars"
-app.set("view engine", "handlebars"); // // use Handlebars for res.render(...)
-app.set("views", path.join(__dirname, "views")); // // templates live in /views
-
-//  OPEN THE DATABASE
-
-// Try to open the database file. If it fails, show an error in the console.
+// OPEN THE SQLITE DATABASE
 const db = new sqlite3.Database(DB_FILE, (err) => {
   if (err) {
     console.error("Could not open the database file:", err);
   } else {
     console.log("Connected to database:", DB_FILE);
-    db.run("PRAGMA foreign_keys = ON"); // // make SQLite respect foreign keys and not ignore by default
+    db.run("PRAGMA foreign_keys = ON"); // make SQLite respect foreign keys
   }
 });
 
-// ROUTES (what to show on each URL)
+// MULTER
+const UPLOADS_DIR = path.join(__dirname, "public", "img");
 
-//  Home page (simple static page)
+(async () => {
+  try {
+    await fs.mkdir(UPLOADS_DIR, { recursive: true });
+  } catch {}
+})();
+
+// diskStorage so we keep the file extension (.jpg/.png) and make a random name
+const storage = multer.diskStorage({
+  //save the physical file
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+
+  // how to name the file (keep it simple: random + original ext)
+  filename: (req, file, cb) => {
+    const ext = (path.extname(file.originalname) || ".jpg").toLowerCase();
+    const rnd = Math.random().toString(36).slice(2, 10); // e.g. "q7x3h2k9"
+    cb(null, rnd + ext); // final filename like "q7x3h2k9.jpg"
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const ok = ["image/png", "image/jpeg"].includes(file.mimetype);
+    cb(ok ? null : new Error("Only PNG or JPG allowed"), ok);
+  },
+});
+
+// ROUTE
+
+// Home
 app.get("/", (req, res) => {
-  //  // Render "views/home.handlebars" and pass a title variable the page can use
   res.render("home", { title: "Home" });
 });
 
-//login page
+// Login
 app.get("/login", (req, res) => {
-  res.render("login", {
-    title: "Login Form",
-    heading: "Log in",
-  });
+  res.render("login", { title: "Login Form", heading: "Log in" });
 });
 
-// app.post("/login", (req, res) => {
-//   const { un, pw } = req.body;
-
-//   if (un === "admin" && pw === "wdf#2025") {
-//     return res.redirect("/recipes");
-//   } else {
-//     res.render("login", {
-//       title: "Login Form",
-//       heading: "Log in",
-//       error: "Wrong Username or Password",
-//       un,
-//     });
-//   }
-// });
 app.post("/login", (req, res) => {
   const { un, pw } = req.body;
 
-  // //  Find the user row by username
-  const sql = `SELECT id, username, ${PW_COL} AS password_hash FROM users WHERE username = ? LIMIT 1`; // added limit 1 cause un is unique
+  const sql = `
+    SELECT id, username, ${PW_COL} AS password_hash
+    FROM users
+    WHERE username = ?
+    LIMIT 1
+  `;
   db.get(sql, [un], (err, row) => {
     if (err) {
       console.error("Login DB error:", err);
       return res.status(500).send("Database error.");
     }
-
     if (!row) {
+      // username not found
       return res.render("login", {
         title: "Login Form",
         heading: "Log in",
@@ -108,10 +106,9 @@ app.post("/login", (req, res) => {
       });
     }
 
-    // // Compare the typed password with the bcrypt in DB
+    // compare typed password vs hashed
     bcrypt.compare(pw, row.password_hash, (cmpErr, ok) => {
       if (cmpErr || !ok) {
-        // // not matching back to login
         return res.render("login", {
           title: "Login Form",
           heading: "Log in",
@@ -119,46 +116,76 @@ app.post("/login", (req, res) => {
           un,
         });
       }
-
-      // // login ok
-      return res.redirect("/recipes");
+      res.redirect("/recipes");
     });
   });
 });
 
-//  About page
+// About page
 app.get("/about", (req, res) => {
   res.render("about", { title: "About" });
 });
 
-//  RECIPES LIST WITH PAGINATION
-
-//  We show 3 recipes per page.
-
-app.get("/recipes", (req, res) => {
-  const recipesPerPage = 3; // // how many recipes to show on one page
-  let page = Number(req.query.page) || 1; // // get page number from the URL (if missing or bad -> 1)
-  if (page < 1) page = 1; // // never go below page 1
-
-  // Count how many recipes exist in total.
-  //    (Simple because every recipe is valid for listing.)
-  const countSql = `SELECT COUNT(*) AS total FROM recipes`;
-
-  db.get(countSql, [], (countErr, countRow) => {
-    if (countErr) {
-      // // if the count fails, send a server error
-      return res.status(500).send("Error counting recipes.");
+// Categories page:
+app.get("/categories", (req, res) => {
+  const sqlCategories = `
+    SELECT id, name, description
+    FROM categories
+    ORDER BY name ASC
+  `;
+  db.all(sqlCategories, [], (err, categories) => {
+    if (err) return res.send("Error loading categories.");
+    if (!categories || categories.length === 0) {
+      return res.render("categories", { title: "Categories", categories: [] });
     }
 
-    const totalRecipes = countRow ? countRow.total : 0; // // how many recipes exist
-    const totalPages = Math.max(1, Math.ceil(totalRecipes / recipesPerPage)); // // how many pages in total
-    if (page > totalPages) page = totalPages; // // do not go past the last page
+    const catData = []; // we'll push each category with its one recipe
 
-    const offset = (page - 1) * recipesPerPage; // // how many recipes to skip before showing this page
+    categories.forEach((cat) => {
+      const sqlRecipe = `
+        SELECT id, title, summary
+        FROM recipes
+        WHERE category_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      db.get(sqlRecipe, [cat.id], (recErr, oneRecipe) => {
+        catData.push({
+          id: cat.id,
+          name: cat.name,
+          description: cat.description,
+          recipe: oneRecipe,
+        });
 
-    //  Get the recipes for this page.
-    //    Join recipes + categories to show the category name.
-    //    We don’t join ingredients here because you said every recipe has ingredients (kept simple).
+        if (catData.length === categories.length) {
+          res.render("categories", {
+            title: "Categories",
+            categories: catData,
+          });
+        }
+      });
+    });
+  });
+});
+
+// Recipes list with pagination (3 per page)
+app.get("/recipes", (req, res) => {
+  const recipesPerPage = 3;
+  let page = Number(req.query.page) || 1;
+  if (page < 1) page = 1;
+
+  // how many total recipes
+  const countSql = `SELECT COUNT(*) AS total FROM recipes`;
+  db.get(countSql, [], (countErr, countRow) => {
+    if (countErr) return res.status(500).send("Error counting recipes.");
+
+    const totalRecipes = countRow ? countRow.total : 0;
+    const totalPages = Math.max(1, Math.ceil(totalRecipes / recipesPerPage));
+    if (page > totalPages) page = totalPages;
+
+    const offset = (page - 1) * recipesPerPage;
+
+    // get the rows for this page
     const listSql = `
       SELECT r.id, r.title, r.summary, c.name AS category
       FROM recipes r
@@ -166,26 +193,16 @@ app.get("/recipes", (req, res) => {
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
     `;
-
     db.all(listSql, [recipesPerPage, offset], (listErr, rows) => {
-      if (listErr) {
-        return res.status(500).send("Error loading recipes.");
-      }
-
-      // // Make info for the Prev / Next buttons
-      const hasPrev = page > 1;
-      const hasNext = page < totalPages;
-
-      // // Render "views/recipes.handlebars" with the data it needs
+      if (listErr) return res.status(500).send("Error loading recipes.");
       res.render("recipes", {
-        title: "Recipes", // // page title
-        recipes: rows, // // the recipes to show on this page
+        title: "Recipes",
+        recipes: rows,
         pagination: {
-          // // info for the pagination UI
           currentPage: page,
-          totalPages: totalPages,
-          hasPrevious: hasPrev,
-          hasNext: hasNext,
+          totalPages,
+          hasPrevious: page > 1,
+          hasNext: page < totalPages,
           prevPage: page - 1,
           nextPage: page + 1,
         },
@@ -194,22 +211,22 @@ app.get("/recipes", (req, res) => {
   });
 });
 
+// Recipe detail
 app.get("/item/:id", (req, res) => {
   const recipeId = req.params.id;
 
-  // 1) Get the recipe + category name
+  // get the recipe and category name
   const recipeSql = `
     SELECT r.*, c.name AS category
     FROM recipes r
     JOIN categories c ON c.id = r.category_id
     WHERE r.id = ?
   `;
-
   db.get(recipeSql, [recipeId], (recipeErr, recipe) => {
     if (recipeErr) return res.status(500).send("Error loading recipe.");
     if (!recipe) return res.status(404).render("404", { title: "Not found" });
 
-    // 2) Ingredients for this recipe
+    // ingredients for this recipe
     const ingSql = `
       SELECT name, amount
       FROM ingredients
@@ -219,39 +236,128 @@ app.get("/item/:id", (req, res) => {
     db.all(ingSql, [recipeId], (ingErr, ingredients) => {
       if (ingErr) return res.status(500).send("Error loading ingredients.");
 
-      // 3) Single image
-      const imgSql = `SELECT filename FROM images WHERE recipe_id = ? LIMIT 1`;
+      // latest image for this recipe
+      const imgSql = `
+        SELECT id, filename
+        FROM images
+        WHERE recipe_id = ?
+        ORDER BY uploaded_at DESC, id DESC
+        LIMIT 1
+      `;
       db.get(imgSql, [recipeId], (imgErr, imageRow) => {
         if (imgErr) return res.status(500).send("Error loading image.");
 
-        // 4) Prepare instructions as an array of steps
+        let images = [];
+        if (imageRow) {
+          const raw = imageRow.filename || "";
+          const web = raw.startsWith("/img/") ? raw : `/img/${raw}`;
+          images = [{ id: imageRow.id, filename: raw, web }];
+        }
+
         const instructionsLines = (recipe.instructions || "")
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean);
 
-        // 5) Render detail page
         res.render("detail", {
           title: recipe.title,
-          recipe, // { id, title, summary, instructions, category, ... }
-          ingredients, // array of { name, amount }
-          images: imageRow ? [imageRow] : [], // keep array shape for the template
-          instructionsLines, // array of strings for <ol>
+          recipe,
+          ingredients,
+          images,
+          instructionsLines,
+          cacheBuster: Date.now(),
         });
       });
     });
   });
 });
 
-// 8) 404 PAGE (for any unknown URL)
+// IMAGE UPLOAD
+app.post("/item/:id/image", upload.single("image"), (req, res) => {
+  const recipeId = req.params.id;
 
+  // make sure a file was chosen
+  if (!req.file)
+    return res.status(400).send("Please choose a PNG or JPG image.");
+
+  const webPath = "/img/" + req.file.filename; // physical file is in /public/img
+
+  db.get(
+    `SELECT id, filename FROM images WHERE recipe_id = ?`,
+    [recipeId],
+    (selErr, row) => {
+      if (selErr) return res.status(500).send("DB error (reading image).");
+
+      if (!row) {
+        const ins = `INSERT INTO images (recipe_id, filename, uploaded_at)
+                     VALUES (?, ?, CURRENT_TIMESTAMP)`;
+        db.run(ins, [recipeId, webPath], (insErr) => {
+          if (insErr)
+            return res.status(500).send("DB error (inserting image).");
+          res.redirect(`/item/${recipeId}`);
+        });
+      } else {
+        // replace: UPDATE the row and delete the old physical file
+        const oldWebPath = row.filename;
+        const upd = `UPDATE images
+                     SET filename = ?, uploaded_at = CURRENT_TIMESTAMP
+                     WHERE recipe_id = ?`;
+        db.run(upd, [webPath, recipeId], async (updErr) => {
+          if (updErr) return res.status(500).send("DB error (updating image).");
+
+          if (oldWebPath) {
+            const oldBase = oldWebPath.replace(/^\/img\//, "");
+            try {
+              await fs.unlink(path.join(UPLOADS_DIR, oldBase));
+            } catch {}
+          }
+          res.redirect(`/item/${recipeId}`);
+        });
+      }
+    }
+  );
+});
+
+// IMAGE DELETE
+app.post("/item/:id/image/delete", (req, res) => {
+  const recipeId = req.params.id;
+
+  db.get(
+    `SELECT filename FROM images WHERE recipe_id = ?`,
+    [recipeId],
+    async (err, row) => {
+      if (err) return res.status(500).send("DB error (select for delete).");
+      if (!row) return res.redirect(`/item/${recipeId}`); // nothing to delete
+
+      // delete the DB row
+      db.run(
+        `DELETE FROM images WHERE recipe_id = ?`,
+        [recipeId],
+        async (delErr) => {
+          if (delErr) return res.status(500).send("DB error (delete row).");
+
+          //  delete the physical
+          const webPath = row.filename; // e.g. "/img/abcd1234.jpg"
+          const baseName = webPath.replace(/^\/img\//, "");
+          if (baseName) {
+            try {
+              await fs.unlink(path.join(UPLOADS_DIR, baseName));
+            } catch {}
+          }
+
+          res.redirect(`/item/${recipeId}`);
+        }
+      );
+    }
+  );
+});
+
+//404 error
 app.use((req, res) => {
   res.status(404).render("404", { title: "Not found" });
 });
 
-// 9) START THE SERVER
-
-// // Start listening. Open http://localhost:3003 in your browser.
+// server start
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
