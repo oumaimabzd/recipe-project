@@ -1,3 +1,23 @@
+html,
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  -webkit-text-size-adjust: 100%;
+  font-synthesis: none;
+}
+
+.topnav,
+.topnav * {
+  font-family: inherit !important;
+  line-height: 1.2;
+}
+
+.topnav a,
+.topnav .user,
+.topnav a.logout {
+  font-weight: 500;
+  font-size: 1rem;
+}
 .topnav {
   display: flex;
   align-items: center;
@@ -93,6 +113,37 @@
   background: #333;
   margin: 5px 0;
   transition: transform 0.25s ease, opacity 0.2s ease;
+}
+/* --- Fix spacing & alignment --- */
+
+.stack .grid-2 {
+  margin-bottom: 1rem;
+}
+
+.inline-form .row-actions {
+  margin-top: 0.75rem;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.row-actions a.btn,
+.row-actions button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  vertical-align: middle;
+  padding: 0.4rem 0.8rem;
+}
+
+.row-actions form {
+  display: inline-block;
+  margin: 0;
 }
 
 /* Responsivness iphone SE */
