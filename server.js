@@ -1,3 +1,31 @@
+/* Oumaima Bouzidi - boou24cg@student.ju.se
+Layla Abdullahi - abla24rh@student.ju.se
+
+Target grade: 5
+
+Project Web Dev Fun - 2025
+
+Administrator login: admin
+Administrator password: wdf#2025 ----> $2b$12$g5HuOX7zVUh.95k4sl6ifeXN/jrxsG0RX8wp3amk8/Yt8miAIC2yu
+
+- Some code in this project was written, corrected (bugs) with the help of chatGPT!
+- ALL of our recipe images come from google images. 
+
+You can log in using the accounts user1 to user9, each with their 
+corresponding password pw1 to pw9 (e.g., user1/pw1, user2/pw2, …, user9/pw9).
+
+When logged in as an admin, you have full CRUD (Create, Read, Update, Delete) permissions for the images
+(see detailed recipes page on the detailed recipe pages), as well as access to modify the users table (CRUD)
+ (see users button on the navbar when logged in as admin)
+  
+  • When logged in as an Admin you have full access to do all of the Crud (both on the images & modify users table).
+	•	When logged in as a regular user, you have CRUD permissions limited to the images only.
+	•	When using the website as a visitor, you can freely browse all recipes and categories, but without editing access.
+
+  PORT: http://localhost:3003
+
+*/
+
 //  IMPORTS
 const path = require("path");
 const express = require("express");
@@ -84,7 +112,7 @@ function requireAdmin(req, res, next) {
   });
 }
 
-//  MULTER (teacher-style)
+//  MULTER
 // Files go to /public/img ; DB stores "/img/<random>.ext"
 const UPLOADS_DIR = path.join(__dirname, "public", "img");
 
@@ -317,9 +345,9 @@ app.get("/item/:id", (req, res) => {
           title: recipe.title,
           recipe,
           ingredients,
-          images, // use {{images.0.web}}
+          images,
           instructionsLines,
-          cacheBuster: Date.now(), // bust caching after uploads
+          cacheBuster: Date.now(),
         });
       });
     });

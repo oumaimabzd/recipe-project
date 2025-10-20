@@ -70,7 +70,7 @@
   transform: translateY(-1px);
 }
 
-/* Hidden checkbox — keeps it clickable via the label */
+/* Hidden checkbox*/
 .nav-toggle {
   position: absolute;
   opacity: 0;
@@ -79,7 +79,7 @@
 
 /* Hamburger button */
 .hamburger {
-  display: none; /* shown only on mobile */
+  display: none;
   border: 0;
   background: transparent;
   padding: 0.4rem;
@@ -95,20 +95,18 @@
   transition: transform 0.25s ease, opacity 0.2s ease;
 }
 
-/* Mobile breakpoint (iPhone SE and similar widths) */
+/* Responsivness iphone SE */
 @media (max-width: 420px) {
   /* show hamburger */
   .hamburger {
     display: inline-block;
   }
 
-  /* stack the nav vertically */
+  /* nav vertical */
   .topnav {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  /* hide items by default on mobile */
   .topnav a,
   .topnav .user,
   .topnav .logout {
@@ -126,7 +124,7 @@
     border-top: 1px solid #e0e0e0;
   }
 
-  /* animate hamburger into an X */
+  /* the X button animation*/
   .nav-toggle:checked + .hamburger span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
   }
