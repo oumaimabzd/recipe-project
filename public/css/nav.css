@@ -69,3 +69,71 @@
   background: #0948b8;
   transform: translateY(-1px);
 }
+
+/* Hidden checkbox — keeps it clickable via the label */
+.nav-toggle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hamburger button */
+.hamburger {
+  display: none; /* shown only on mobile */
+  border: 0;
+  background: transparent;
+  padding: 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #333;
+  margin: 5px 0;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+/* Mobile breakpoint (iPhone SE and similar widths) */
+@media (max-width: 420px) {
+  /* show hamburger */
+  .hamburger {
+    display: inline-block;
+  }
+
+  /* stack the nav vertically */
+  .topnav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* hide items by default on mobile */
+  .topnav a,
+  .topnav .user,
+  .topnav .logout {
+    display: none;
+  }
+
+  /* show them when toggled */
+  .nav-toggle:checked ~ a,
+  .nav-toggle:checked ~ .user,
+  .nav-toggle:checked ~ .logout {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 0;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  /* animate hamburger into an X */
+  .nav-toggle:checked + .hamburger span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .nav-toggle:checked + .hamburger span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle:checked + .hamburger span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+}

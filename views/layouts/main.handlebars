@@ -1,4 +1,4 @@
-<html lang="en">
+{{!-- <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -13,6 +13,8 @@
   </head>
 
   <body>
+    <div class="spacer"></div>
+
     <nav class="topnav">
       <a href="/">Home</a>
       <a href="/about">About</a>
@@ -29,6 +31,63 @@
       {{#if session.isLoggedIn}}
         <span class="user">Hi, {{session.username}}</span>
         <a href="/logout">Logout</a>
+      {{else}}
+        <a href="/login">Login</a>
+      {{/if}}
+    </nav>
+
+    <main style="max-width:900px;margin:0 auto;padding:1rem;">
+      {{{body}}}
+    </main>
+  </body>
+</html> --}}
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/categories.css" />
+    <link rel="stylesheet" href="/css/nav.css" />
+    <link rel="stylesheet" href="/css/admin.css" />
+    <link rel="stylesheet" href="/css/home.css" />
+
+    <title>{{title}}</title>
+  </head>
+
+  <body>
+    <div class="spacer"></div>
+
+    <nav class="topnav" role="navigation">
+      <!-- 👇 HAMBURGER TOGGLE (add this part) -->
+      <input
+        type="checkbox"
+        id="nav-toggle"
+        class="nav-toggle"
+        aria-label="Toggle menu"
+      />
+      <label for="nav-toggle" class="hamburger" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </label>
+      <!-- 👆 END HAMBURGER TOGGLE -->
+
+      <!-- 👇 Your existing menu links -->
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+      <a href="/recipes">Recipes</a>
+      <a href="/categories">Categories</a>
+      <a href="/contact">Contact Us</a>
+
+      {{#if session.isAdmin}}
+        <a href="/admin/users">Users</a>
+      {{/if}}
+
+      <span class="spacer"></span>
+
+      {{#if session.isLoggedIn}}
+        <span class="user">Hi, {{session.username}}</span>
+        <a href="/logout" class="logout">Logout</a>
       {{else}}
         <a href="/login">Login</a>
       {{/if}}
