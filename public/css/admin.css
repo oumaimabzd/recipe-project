@@ -133,4 +133,14 @@
   background: #f3f4f6;
   color: var(--text);
 }
-/* --- iPhone SE Responsive (max 380px) --- */
+/* --- iPhone SE only: force "New User" + "Password" to stack --- */
+@media (max-width: 380px) {
+  /* 1) If your form uses the .grid-2 container */
+  .inline-form .grid-2,
+  .stack .grid-2,
+  .users-table td .inline-form .grid-2 {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
